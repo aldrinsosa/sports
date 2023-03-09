@@ -1,14 +1,13 @@
 {% extends 'layout.html' %}
 
 {% block body %}
-  {% if code == 'already' %}
-    <div class="alert alert-danger text-center ">
-      <div><i class="fa-solid fa-circle-exclamation pe-2"></i> You're already register </div>
+  <div class="alert alert-danger text-center ">
+    <div><i class="fa-solid fa-circle-exclamation pe-2"></i> 
+      {% if code == 'already' %}
+        You're already register
+      {% else %}
+        There was an error
+      {% endif %}
     </div>
-  {% else %}
-    <div class="alert alert-danger text-center ">
-      <div><i class="fa-solid fa-circle-exclamation pe-2"></i> There was an error </div>
-    </div>
-  {% endif %}
-
+  </div>
 {% endblock body %}
