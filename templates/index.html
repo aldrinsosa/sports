@@ -1,0 +1,17 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+  <div class="p-2 alert alert-success mb-2 text-center"> {{name}} is logged </div>
+
+  <form class="d-flex" method="post" action="/register">
+    <select class="form-select me-2" name="sports">
+      <option disabled selected>Sports</option>
+      {% for sport in sports %}
+        <option value="{{sport}}">{{sport}}</option>
+      {% endfor %}
+      
+    </select>
+    <button class="btn btn-success" type="submit">Register</button>
+  </form>
+{% endblock body%}

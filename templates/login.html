@@ -1,0 +1,8 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+  <form class="d-flex" action="/login" method="post">
+    <input type="text" class="form-control me-2" autofocus placeholder="Username" autocomplete="off" name="name">
+    <button type="submit" class="btn btn-success">Login</button>
+  </form>
+{% endblock body %}

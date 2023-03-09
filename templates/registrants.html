@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<table class="table">
+  <thead>
+    <tr class="trow">
+      <th >Sports</th>
+      <th ></th>
+    </tr>
+  </thead>
+  <tbody >
+    {% for registrant in registrants %}
+    <tr class="trow">
+      <td class="py-3">
+        <p class="m-0">{{registrant["Sport"]}}</p>
+      </td>
+      <td>
+        <form method="post" action="/deregister">
+          <input type="hidden" name="id" value="{{registrant["Id"]}}">
+          <button type="submit" class="p-1 border-0"> <i class="fa-solid fa-xmark btn btn-danger"></i></button>
+        </form>
+      </td>
+    </tr>  
+  {% endfor %} 
+  </tbody>
+</table>
+  
+{% endblock body %}
