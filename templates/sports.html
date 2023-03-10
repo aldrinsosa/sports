@@ -12,11 +12,11 @@
     {% for registrant in registrants %}
     <tr class="trow">
       <td class="py-3">
-        <p class="m-0">{{registrant["Sport"]}}</p>
+        <p class="m-0">{{registrant.sport }}</p>
       </td>
       <td>
         <form method="post" action="/deregister">
-          <input type="hidden" name="id" value="{{registrant["Id"]}}">
+          <input type="hidden" name="id" value="{{ registrant.id }}">
           <button type="submit" class="p-1 border-0"> <i class="fa-solid fa-xmark btn btn-danger"></i></button>
         </form>
       </td>

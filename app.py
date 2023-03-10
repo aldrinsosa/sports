@@ -1,13 +1,66 @@
 from flask import Flask, request, session, render_template, redirect
-from flask_session import Session
-from cs50 import SQL
+from flask_wtf import FlaskForm
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from wtforms import SubmitField, StringField, PasswordField
+from wtforms.validators import InputRequired, Length
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt, check_password_hash
 
-# Initialize app,session and database
-app = Flask(__name__)
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
-db = SQL("sqlite:///registrants.db")
+# Initialize app
+app = Flask(__name__, instance_relative_config=True)
+
+# Config
+app.config.from_pyfile('config.py')
+
+# Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Users.query.get(int(user_id))
+
+
+# Encryption
+bcrypt = Bcrypt(app)
+
+# DB initialization
+db = SQLAlchemy(app)
+
+# Create Tables
+
+
+class Users(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+
+
+class Sports(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sport = db.Column(db.String(20), nullable=False)
+    usernameId = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+
+class Register(FlaskForm):
+    username = StringField(validators=[InputRequired(), Length(
+        min=4, max=20)], render_kw={"placeholder": "Name", "autofocus": "True", "autocomplete": "off"})
+    password = PasswordField(validators=[InputRequired(), Length(
+        min=8, max=20)], render_kw={"placeholder": "Password", "autocomplete": "off"})
+    submit = SubmitField("Register")
+
+
+class Login(FlaskForm):
+    username = StringField(validators=[InputRequired(), Length(
+        min=4, max=20)], render_kw={"placeholder": "Name", "autofocus": "True", "autocomplete": "off"})
+
+    password = PasswordField(validators=[InputRequired(), Length(
+        min=8, max=20)], render_kw={"placeholder": "Password", "autocomplete": "off"})
+
+    submit = SubmitField("Login")
+
 
 SPORTS = [
     "Basketball",
@@ -18,24 +71,54 @@ SPORTS = [
 
 
 @app.route('/')
+@login_required
 def index():
-    if not session.get("name"):
+    # todo
+    return render_template("index.html", sports=SPORTS, name=current_user.username)
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    # get the form from the class
+    form = Register()
+
+    if form.validate_on_submit():
+        # crypt the password
+        user = Users.query.filter_by(username=form.username.data).first()
+        if user:
+            return render_template("failure.html", code="existingUser")
+
+        crypted_pass = bcrypt.generate_password_hash(form.password.data)
+
+        # add new user to the db
+        db.session.add(Users(username=form.username.data,
+                             password=crypted_pass))
+        db.session.commit()
+
         return redirect("/login")
-    return render_template("index.html", sports=SPORTS, name=session["name"])
+
+    return render_template("signup.html", form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        session["name"] = request.form.get("name")
-        return redirect('/')
-    return render_template("login.html")
+    form = Login()
+    if form.validate_on_submit():
+        user = Users.query.filter_by(username=form.username.data).first()
+        if user:
+            if check_password_hash(user.password, form.password.data):
+                login_user(user)
+                return redirect("/")
+            return render_template("failure.html", code="not")
+        return render_template("failure.html", code="not")
+    return render_template("login.html", form=form)
 
 
 @app.route('/register', methods=['POST'])
+@login_required
 def register():
-    # Getting the name and the sport
-    name = session["name"]
+    # Getting the name and the sportyyyy
+    name = current_user.username
     sport = request.form.get("sports")
 
     # Checking the input
@@ -43,37 +126,38 @@ def register():
         return render_template("failure.html", code="not")
 
     # Check if are already registered in that sport
-    person_sports = db.execute(
-        "SELECT Sport FROM registrants WHERE name = ?", name)
-    for sports in person_sports:
-        if sport == sports["Sport"]:
-            return render_template("failure.html", code="already")
+    person_sports = Sports.query.filter_by(
+        sport=sport, usernameId=current_user.id).first()
+    if person_sports:
+        return render_template("failure.html", code="already")
 
     # Putting the data in the db
-    db.execute(
-        "INSERT INTO registrants (Name, Sport) VALUES (?, ?)", name, sport)
-    return redirect("/registrants")
+    db.session.add(Sports(usernameId=current_user.id, sport=sport))
+    db.session.commit()
+    return redirect("/sports")
 
 
-@app.route('/registrants')
-def registrants():
-    if not session.get("name"):
-        return redirect("/login")
+@app.route('/sports')
+@login_required
+def sports():
     # Render the registered sports
-    return render_template("registrants.html", registrants=db.execute("SELECT * FROM registrants WHERE Name in (?)", session["name"]))
+    sports = Sports.query.filter(Sports.usernameId == current_user.id).all()
+    print(sports)
+    return render_template("sports.html", registrants=Sports.query.filter(Sports.usernameId == current_user.id).all())
 
 
 @app.route('/deregister', methods=['POST', 'GET'])
 def deregister():
     # Delete the register in the db
     if request.method == "POST":
-        db.execute("DELETE FROM registrants WHERE Id = ?",
-                   request.form.get("id"))
-        return redirect("/registrants")
+        sport = Sports.query.filter_by(id=request.form.get("id")).first()
+        db.session.delete(sport)
+        db.session.commit()
+        return redirect("/sports")
     return redirect("/")
 
 
 @app.route('/logout')
 def logout():
-    session["name"] = None
-    return redirect("/")
+    logout_user()
+    return redirect("/login")

@@ -1,10 +1,12 @@
 {% extends 'layout.html' %}
 
 {% block body %}
-  <form class="d-flex" action="/login" method="post">
+
+  <form class="d-flex" action="/signup" method="post">
     {{ form.hidden_tag() }}
     {{ form.username(class_="form-control me-2" )}}
     {{ form.password (class_="form-control me-2" )}}
     {{ form.submit (class_="btn btn-success")}}
   </form>
+
 {% endblock body %}

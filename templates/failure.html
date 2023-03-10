@@ -5,6 +5,8 @@
     <div><i class="fa-solid fa-circle-exclamation pe-2"></i> 
       {% if code == 'already' %}
         You're already register
+      {% elif code == 'existingUser' %}
+        This user is taken
       {% else %}
         There was an error
       {% endif %}
