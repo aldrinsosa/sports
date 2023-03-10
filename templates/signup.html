@@ -1,7 +1,6 @@
 {% extends 'layout.html' %}
 
 {% block body %}
-
   <form class="d-flex" action="/signup" method="post">
     {{ form.hidden_tag() }}
     {{ form.username(class_="form-control me-2" )}}

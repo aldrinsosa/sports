@@ -1,4 +1,4 @@
-from flask import Flask, request, session, render_template, redirect
+from flask import Flask, request, session, render_template, redirect, flash
 from flask_wtf import FlaskForm
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from wtforms import SubmitField, StringField, PasswordField
@@ -86,7 +86,8 @@ def signup():
         # crypt the password
         user = Users.query.filter_by(username=form.username.data).first()
         if user:
-            return render_template("failure.html", code="existingUser")
+            flash("This user is already used")
+            return redirect("/signup")
 
         crypted_pass = bcrypt.generate_password_hash(form.password.data)
 
@@ -109,27 +110,30 @@ def login():
             if check_password_hash(user.password, form.password.data):
                 login_user(user)
                 return redirect("/")
-            return render_template("failure.html", code="not")
-        return render_template("failure.html", code="not")
+            flash("Incorrect password")
+            return redirect("/login")
+        flash("Incorrect username")
+        return redirect("/login")
     return render_template("login.html", form=form)
 
 
 @app.route('/register', methods=['POST'])
 @login_required
 def register():
-    # Getting the name and the sportyyyy
-    name = current_user.username
+    # Getting sport
     sport = request.form.get("sports")
 
     # Checking the input
-    if not name or sport not in SPORTS:
-        return render_template("failure.html", code="not")
+    if sport not in SPORTS:
+        flash("Select a sport")
+        return redirect("/")
 
     # Check if are already registered in that sport
     person_sports = Sports.query.filter_by(
         sport=sport, usernameId=current_user.id).first()
     if person_sports:
-        return render_template("failure.html", code="already")
+        flash("You're already in that sport")
+        return redirect("/")
 
     # Putting the data in the db
     db.session.add(Sports(usernameId=current_user.id, sport=sport))
